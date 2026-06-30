@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Brain } from "lucide-react";
 import { toast } from "sonner";
 import { ImportacaoVendas } from "@/components/previsao/importacao-vendas";
@@ -40,6 +40,21 @@ export default function PrevisaoPage() {
   const [itens, setItens] = useState<PrevisaoItem[]>([]);
   const [processando, setProcessando] = useState(false);
   const [jaProcessou, setJaProcessou] = useState(false);
+  const [margemSeguranca, setMargemSeguranca] = useState(0);
+
+  useEffect(() => {
+    async function carregarMargem() {
+      const { data } = await supabase
+        .from("configuracoes")
+        .select("valor")
+        .eq("chave", "margem_seguranca")
+        .maybeSingle();
+      if (data?.valor !== undefined && data?.valor !== null) {
+        setMargemSeguranca(Number(data.valor));
+      }
+    }
+    carregarMargem();
+  }, []);
 
   const podeGerar = vendas.length > 0 && estoque.length > 0;
 
@@ -61,7 +76,7 @@ export default function PrevisaoPage() {
       const inicio = periodo === "personalizado" && dataInicio ? new Date(dataInicio) : undefined;
       const fim = periodo === "personalizado" && dataFim ? new Date(dataFim) : undefined;
 
-      const resultado = gerarPrevisao(vendas, estoque, periodo, inicio, fim);
+      const resultado = gerarPrevisao(vendas, estoque, periodo, inicio, fim, margemSeguranca);
       setItens(resultado);
       setJaProcessou(true);
 
@@ -112,7 +127,7 @@ export default function PrevisaoPage() {
   function handlePeriodoChange(novoPeriodo: PeriodoFiltro) {
     setPeriodo(novoPeriodo);
     if (jaProcessou && podeGerar && novoPeriodo !== "personalizado") {
-      const resultado = gerarPrevisao(vendas, estoque, novoPeriodo);
+      const resultado = gerarPrevisao(vendas, estoque, novoPeriodo, undefined, undefined, margemSeguranca);
       setItens(resultado);
     }
   }
