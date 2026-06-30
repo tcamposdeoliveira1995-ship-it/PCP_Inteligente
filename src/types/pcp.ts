@@ -27,6 +27,7 @@ export interface PrevisaoItem {
   producao_sugerida: number;
   status: "produzir" | "estoque_ok";
   cobertura_dias: number | null;
+  empresa: string | null;
 }
 
 export interface PrevisaoHistorico {
