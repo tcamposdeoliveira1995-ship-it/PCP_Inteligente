@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-texto antialiased;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .card-mamma {
+    @apply bg-card rounded-lg shadow-soft border border-cinza/60 transition-shadow;
+  }
+  .card-mamma:hover {
+    @apply shadow-softHover;
+  }
+}
