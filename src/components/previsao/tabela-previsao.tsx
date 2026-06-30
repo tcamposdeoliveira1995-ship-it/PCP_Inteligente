@@ -102,7 +102,8 @@ export function TabelaPrevisao({ itens }: Props) {
             onChange={(e) => setBusca(e.target.value)}
             className="w-full pl-9 pr-3 py-2 rounded-md border border-cinza text-sm bg-card"
           />
-       <div className="flex gap-2">
+        </div>
+        <div className="flex gap-2">
           <Button variant="outline" onClick={() => exportarPrevisaoExcel(itens)}>
             <Download size={16} />
             Exportar Excel
@@ -112,6 +113,7 @@ export function TabelaPrevisao({ itens }: Props) {
             Exportar PDF
           </Button>
         </div>
+      </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
