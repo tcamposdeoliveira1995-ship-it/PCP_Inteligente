@@ -15,6 +15,7 @@ import { PrevisaoItem } from "@/types/pcp";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { exportarPrevisaoExcel } from "@/lib/exportar-excel";
+import { exportarPrevisaoPDF } from "@/lib/exportar-pdf";
 
 interface Props {
   itens: PrevisaoItem[];
@@ -101,12 +102,16 @@ export function TabelaPrevisao({ itens }: Props) {
             onChange={(e) => setBusca(e.target.value)}
             className="w-full pl-9 pr-3 py-2 rounded-md border border-cinza text-sm bg-card"
           />
+       <div className="flex gap-2">
+          <Button variant="outline" onClick={() => exportarPrevisaoExcel(itens)}>
+            <Download size={16} />
+            Exportar Excel
+          </Button>
+          <Button variant="outline" onClick={() => exportarPrevisaoPDF(itens)}>
+            <Download size={16} />
+            Exportar PDF
+          </Button>
         </div>
-        <Button variant="outline" onClick={() => exportarPrevisaoExcel(itens)}>
-          <Download size={16} />
-          Exportar Excel
-        </Button>
-      </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
