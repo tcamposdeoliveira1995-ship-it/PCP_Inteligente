@@ -82,7 +82,6 @@ function mapearLinhas(rows: unknown[][], headerRow: string[]) {
   });
 }
 
-// Converte período tipo "DEZ_25" ou "MAI_26" para o primeiro dia daquele mês: "2025-12-01"
 function periodoParaData(periodo: unknown): string {
   const str = String(periodo ?? "").trim().toLowerCase();
   const match = str.match(/^([a-z]{3})_(\d{2})$/);
@@ -96,7 +95,7 @@ function periodoParaData(periodo: unknown): string {
 
 export async function parseVendasHistorico(
   file: File
-): Promise<ParseResult<{ codigo: string; produto: string; quantidade_vendida: number; data_venda: string }>> {
+): Promise<ParseResult<{ codigo: string; produto: string; quantidade_vendida: number; data_venda: string; empresa?: string }>> {
   const rows = await lerArquivo(file);
   if (rows.length === 0) {
     return { sucesso: false, dados: [], colunasFaltando: COLUNAS_VENDAS_SIMPLES, totalRegistros: 0 };
@@ -120,6 +119,7 @@ export async function parseVendasHistorico(
         produto: String(linha["desc_produto"] ?? "").trim(),
         quantidade_vendida: parseFloat(String(linha["tot_qtde"] ?? "0").replace(",", ".")) || 0,
         data_venda: periodoParaData(linha["periodo"]),
+        empresa: String(linha["empresa"] ?? "").trim() || undefined,
       }))
       .filter((item) => item.codigo && item.data_venda);
 
@@ -131,6 +131,7 @@ export async function parseVendasHistorico(
     produto: String(linha["produto"] ?? "").trim(),
     quantidade_vendida: parseFloat(String(linha["quantidade vendida"] ?? "0").replace(",", ".")) || 0,
     data_venda: normalizarData(linha["data da venda"]),
+    empresa: String(linha["empresa"] ?? "").trim() || undefined,
   }));
 
   return { sucesso: true, dados, colunasFaltando: [], totalRegistros: dados.length };
