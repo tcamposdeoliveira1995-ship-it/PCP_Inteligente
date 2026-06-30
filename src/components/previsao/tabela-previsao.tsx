@@ -10,7 +10,7 @@ import {
   useReactTable,
   SortingState,
 } from "@tanstack/react-table";
-import { Search, ArrowUpDown, Download } from "lucide-react";
+import { Search, ArrowUpDown, Download, AlertTriangle } from "lucide-react";
 import { PrevisaoItem } from "@/types/pcp";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,10 +28,19 @@ export function TabelaPrevisao({ itens }: Props) {
   const [busca, setBusca] = useState("");
   const [sorting, setSorting] = useState<SortingState>([{ id: "producao_sugerida", desc: true }]);
   const [filtroEmpresa, setFiltroEmpresa] = useState<FiltroEmpresa>("todos");
+  const [apenasEstoqueMinimo, setApenasEstoqueMinimo] = useState(false);
 
   const itensFiltrados = useMemo(() => {
-    if (filtroEmpresa === "todos") return itens;
-    return itens.filter((i) => i.empresa === filtroEmpresa);
+    let lista = filtroEmpresa === "todos" ? itens : itens.filter((i) => i.empresa === filtroEmpresa);
+    if (apenasEstoqueMinimo) {
+      lista = lista.filter((i) => i.estoque_atual < i.estoque_minimo);
+    }
+    return lista;
+  }, [itens, filtroEmpresa, apenasEstoqueMinimo]);
+
+  const totalAbaixoMinimo = useMemo(() => {
+    const base = filtroEmpresa === "todos" ? itens : itens.filter((i) => i.empresa === filtroEmpresa);
+    return base.filter((i) => i.estoque_atual < i.estoque_minimo).length;
   }, [itens, filtroEmpresa]);
 
   const colunas = useMemo<ColumnDef<PrevisaoItem>[]>(
@@ -51,7 +60,16 @@ export function TabelaPrevisao({ itens }: Props) {
       {
         accessorKey: "estoque_atual",
         header: "Estoque Atual",
-        cell: (info) => formatNum(info.getValue<number>()),
+        cell: (info) => {
+          const row = info.row.original;
+          const abaixo = row.estoque_atual < row.estoque_minimo;
+          return (
+            <span className={cn("font-medium", abaixo ? "text-erro" : "")}>
+              {formatNum(info.getValue<number>())}
+              {abaixo && " ⚠️"}
+            </span>
+          );
+        },
       },
       {
         accessorKey: "estoque_minimo",
@@ -113,6 +131,7 @@ export function TabelaPrevisao({ itens }: Props) {
   return (
     <div className="card-mamma p-5">
       <div className="flex flex-col gap-3 mb-4">
+
         <div className="flex flex-wrap gap-2">
           {empresas.map((e) => (
             <button
@@ -128,6 +147,29 @@ export function TabelaPrevisao({ itens }: Props) {
               {e.label}
             </button>
           ))}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setApenasEstoqueMinimo(!apenasEstoqueMinimo)}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors border",
+              apenasEstoqueMinimo
+                ? "bg-erro text-white border-erro"
+                : "bg-card text-texto border-cinza hover:bg-cinza/30"
+            )}
+          >
+            <AlertTriangle size={14} />
+            Abaixo do estoque mínimo
+            {totalAbaixoMinimo > 0 && (
+              <span className={cn(
+                "ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold",
+                apenasEstoqueMinimo ? "bg-white text-erro" : "bg-erro text-white"
+              )}>
+                {totalAbaixoMinimo}
+              </span>
+            )}
+          </button>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -183,7 +225,13 @@ export function TabelaPrevisao({ itens }: Props) {
               </tr>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="border-b border-cinza/50 hover:bg-cinza/20">
+                <tr
+                  key={row.id}
+                  className={cn(
+                    "border-b border-cinza/50 hover:bg-cinza/20",
+                    row.original.estoque_atual < row.original.estoque_minimo ? "bg-erro/5" : ""
+                  )}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="py-3 px-3 whitespace-nowrap">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
