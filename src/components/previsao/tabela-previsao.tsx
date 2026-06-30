@@ -16,19 +16,33 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { exportarPrevisaoExcel } from "@/lib/exportar-excel";
 import { exportarPrevisaoPDF } from "@/lib/exportar-pdf";
+import { cn } from "@/lib/utils";
 
 interface Props {
   itens: PrevisaoItem[];
 }
 
+type FiltroEmpresa = "todos" | "YUKA" | "TC";
+
 export function TabelaPrevisao({ itens }: Props) {
   const [busca, setBusca] = useState("");
   const [sorting, setSorting] = useState<SortingState>([{ id: "producao_sugerida", desc: true }]);
+  const [filtroEmpresa, setFiltroEmpresa] = useState<FiltroEmpresa>("todos");
+
+  const itensFiltrados = useMemo(() => {
+    if (filtroEmpresa === "todos") return itens;
+    return itens.filter((i) => i.empresa === filtroEmpresa);
+  }, [itens, filtroEmpresa]);
 
   const colunas = useMemo<ColumnDef<PrevisaoItem>[]>(
     () => [
       { accessorKey: "codigo", header: "Código" },
       { accessorKey: "produto", header: "Produto" },
+      {
+        accessorKey: "empresa",
+        header: "Empresa",
+        cell: (info) => info.getValue<string | null>() ?? "—",
+      },
       {
         accessorKey: "media_semanal",
         header: "Média Semanal",
@@ -74,7 +88,7 @@ export function TabelaPrevisao({ itens }: Props) {
   );
 
   const table = useReactTable({
-    data: itens,
+    data: itensFiltrados,
     columns: colunas,
     state: { sorting, globalFilter: busca },
     onSortingChange: setSorting,
@@ -90,28 +104,53 @@ export function TabelaPrevisao({ itens }: Props) {
     },
   });
 
+  const empresas: { valor: FiltroEmpresa; label: string }[] = [
+    { valor: "todos", label: "Todas as empresas" },
+    { valor: "YUKA", label: "YUKA — Assados" },
+    { valor: "TC", label: "TC — Frituras" },
+  ];
+
   return (
     <div className="card-mamma p-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-        <div className="relative w-full sm:w-72">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-texto/40" />
-          <input
-            type="text"
-            placeholder="Pesquisar por código ou produto..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 rounded-md border border-cinza text-sm bg-card"
-          />
+      <div className="flex flex-col gap-3 mb-4">
+        <div className="flex flex-wrap gap-2">
+          {empresas.map((e) => (
+            <button
+              key={e.valor}
+              onClick={() => setFiltroEmpresa(e.valor)}
+              className={cn(
+                "px-4 py-2 rounded-md text-sm font-medium transition-colors border",
+                filtroEmpresa === e.valor
+                  ? "bg-dourado text-marrom border-dourado"
+                  : "bg-card text-texto border-cinza hover:bg-cinza/30"
+              )}
+            >
+              {e.label}
+            </button>
+          ))}
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => exportarPrevisaoExcel(itens)}>
-            <Download size={16} />
-            Exportar Excel
-          </Button>
-          <Button variant="outline" onClick={() => exportarPrevisaoPDF(itens)}>
-            <Download size={16} />
-            Exportar PDF
-          </Button>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="relative w-full sm:w-72">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-texto/40" />
+            <input
+              type="text"
+              placeholder="Pesquisar por código ou produto..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 rounded-md border border-cinza text-sm bg-card"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => exportarPrevisaoExcel(itensFiltrados)}>
+              <Download size={16} />
+              Exportar Excel
+            </Button>
+            <Button variant="outline" onClick={() => exportarPrevisaoPDF(itensFiltrados)}>
+              <Download size={16} />
+              Exportar PDF
+            </Button>
+          </div>
         </div>
       </div>
 
