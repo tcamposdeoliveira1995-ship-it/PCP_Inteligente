@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { PrevisaoHistorico, PrevisaoItem } from "@/types/pcp";
+import { cn } from "@/lib/utils";
 
 const LABEL_PERIODO: Record<string, string> = {
   "7_dias": "Últimos 7 dias",
@@ -15,11 +16,20 @@ const LABEL_PERIODO: Record<string, string> = {
   personalizado: "Período personalizado",
 };
 
+type FiltroEmpresa = "todos" | "YUKA" | "TC";
+
+const EMPRESAS: { valor: FiltroEmpresa; label: string }[] = [
+  { valor: "todos", label: "Todas" },
+  { valor: "YUKA", label: "YUKA — Assados" },
+  { valor: "TC", label: "TC — Frituras" },
+];
+
 export default function DashboardPage() {
   const [carregando, setCarregando] = useState(true);
   const [ultimaPrevisao, setUltimaPrevisao] = useState<PrevisaoHistorico | null>(null);
   const [itens, setItens] = useState<PrevisaoItem[]>([]);
   const [totalPrevisoesGeradas, setTotalPrevisoesGeradas] = useState(0);
+  const [filtroEmpresa, setFiltroEmpresa] = useState<FiltroEmpresa>("todos");
 
   useEffect(() => {
     async function carregar() {
@@ -43,8 +53,7 @@ export default function DashboardPage() {
           .from("previsao_itens")
           .select("*")
           .eq("previsao_id", ultima.id)
-          .order("producao_sugerida", { ascending: false })
-          .limit(5);
+          .order("producao_sugerida", { ascending: false });
 
         if (itensData) setItens(itensData as PrevisaoItem[]);
       }
@@ -53,6 +62,14 @@ export default function DashboardPage() {
     }
     carregar();
   }, []);
+
+  const itensFiltrados = filtroEmpresa === "todos"
+    ? itens
+    : itens.filter((i) => i.empresa === filtroEmpresa);
+
+  const top5 = itensFiltrados.slice(0, 5);
+  const produtosParaProduzir = itensFiltrados.filter((i) => i.status === "produzir").length;
+  const totalSugerido = itensFiltrados.reduce((acc, i) => acc + i.producao_sugerida, 0);
 
   if (carregando) {
     return (
@@ -73,7 +90,6 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-semibold text-marrom">Dashboard</h1>
           <p className="text-texto/60 mt-1">Visão geral do planejamento de produção.</p>
         </div>
-
         <Card className="text-center py-12">
           <TrendingUp size={40} className="mx-auto text-dourado mb-4" />
           <h2 className="text-lg font-medium text-marrom mb-2">Comece gerando sua primeira previsão</h2>
@@ -88,8 +104,6 @@ export default function DashboardPage() {
       </div>
     );
   }
-
-  const produtosParaProduzir = itens.filter((i) => i.status === "produzir").length;
 
   return (
     <div className="space-y-6 pt-12 md:pt-0">
@@ -126,6 +140,23 @@ export default function DashboardPage() {
         </div>
       </Card>
 
+      <div className="flex flex-wrap gap-2">
+        {EMPRESAS.map((e) => (
+          <button
+            key={e.valor}
+            onClick={() => setFiltroEmpresa(e.valor)}
+            className={cn(
+              "px-4 py-2 rounded-md text-sm font-medium transition-colors border",
+              filtroEmpresa === e.valor
+                ? "bg-dourado text-marrom border-dourado"
+                : "bg-card text-texto border-cinza hover:bg-cinza/30"
+            )}
+          >
+            {e.label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="flex items-center gap-4">
           <div className="p-3 rounded-md bg-cinza/40 text-marrom">
@@ -133,7 +164,7 @@ export default function DashboardPage() {
           </div>
           <div>
             <p className="text-xs text-texto/60">Produtos analisados</p>
-            <p className="text-xl font-semibold text-marrom">{ultimaPrevisao.quantidade_produtos}</p>
+            <p className="text-xl font-semibold text-marrom">{itensFiltrados.length}</p>
           </div>
         </Card>
 
@@ -142,7 +173,7 @@ export default function DashboardPage() {
             <AlertTriangle size={20} />
           </div>
           <div>
-            <p className="text-xs text-texto/60">P/ produzir (top 5)</p>
+            <p className="text-xs text-texto/60">Para produzir</p>
             <p className="text-xl font-semibold text-marrom">{produtosParaProduzir}</p>
           </div>
         </Card>
@@ -154,7 +185,7 @@ export default function DashboardPage() {
           <div>
             <p className="text-xs text-texto/60">Total sugerido</p>
             <p className="text-xl font-semibold text-marrom">
-              {ultimaPrevisao.quantidade_total_sugerida.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
+              {totalSugerido.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
             </p>
           </div>
         </Card>
@@ -171,23 +202,34 @@ export default function DashboardPage() {
       </div>
 
       <Card>
-        <h3 className="font-medium text-marrom mb-4">Top 5 produtos com maior produção sugerida</h3>
-        <div className="space-y-2">
-          {itens.map((item) => (
-            <div
-              key={item.codigo}
-              className="flex items-center justify-between py-2 border-b border-cinza/50 last:border-0"
-            >
-              <div>
-                <p className="text-sm font-medium text-texto">{item.produto}</p>
-                <p className="text-xs text-texto/50">Código {item.codigo}</p>
+        <h3 className="font-medium text-marrom mb-4">
+          Top 5 produtos com maior produção sugerida
+          {filtroEmpresa !== "todos" && (
+            <span className="ml-2 text-sm font-normal text-texto/60">
+              — {filtroEmpresa === "YUKA" ? "YUKA (Assados)" : "TC (Frituras)"}
+            </span>
+          )}
+        </h3>
+        {top5.length === 0 ? (
+          <p className="text-texto/50 text-sm">Nenhum produto encontrado para esta empresa.</p>
+        ) : (
+          <div className="space-y-2">
+            {top5.map((item) => (
+              <div
+                key={item.codigo}
+                className="flex items-center justify-between py-2 border-b border-cinza/50 last:border-0"
+              >
+                <div>
+                  <p className="text-sm font-medium text-texto">{item.produto}</p>
+                  <p className="text-xs text-texto/50">Código {item.codigo}</p>
+                </div>
+                <p className="font-semibold text-marrom">
+                  {item.producao_sugerida.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
+                </p>
               </div>
-              <p className="font-semibold text-marrom">
-                {item.producao_sugerida.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
-              </p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );
