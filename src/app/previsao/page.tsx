@@ -19,6 +19,7 @@ interface VendaInput {
   produto: string;
   quantidade_vendida: number;
   data_venda: string;
+  empresa?: string;
 }
 interface EstoqueInput {
   codigo: string;
@@ -109,6 +110,7 @@ export default function PrevisaoPage() {
           producao_sugerida: item.producao_sugerida,
           status: item.status,
           cobertura_dias: item.cobertura_dias,
+          empresa: item.empresa ?? null,
         }));
 
         const { error: erroItens } = await supabase.from("previsao_itens").insert(itensParaInserir);
