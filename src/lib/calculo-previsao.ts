@@ -61,12 +61,18 @@ export function filtrarVendasPorPeriodo(
   return { vendasFiltradas, dataInicio, dataFim };
 }
 
+/**
+ * Regra de negócio principal:
+ * Média Semanal = (soma das vendas no período) / (dias do período) * 7
+ * Produção Sugerida = max(Média Semanal - Estoque Atual, 0) * (1 + margemSeguranca/100)
+ */
 export function gerarPrevisao(
   vendas: VendaInput[],
   estoque: EstoqueInput[],
   periodo: PeriodoFiltro,
   dataInicioPersonalizada?: Date,
-  dataFimPersonalizada?: Date
+  dataFimPersonalizada?: Date,
+  margemSeguranca: number = 0
 ): PrevisaoItem[] {
   const { vendasFiltradas, dataInicio, dataFim } = filtrarVendasPorPeriodo(
     vendas,
@@ -98,6 +104,7 @@ export function gerarPrevisao(
   const todosCodigos = new Set<string>([...vendasPorCodigo.keys(), ...estoquePorCodigo.keys()]);
 
   const itens: PrevisaoItem[] = [];
+  const fatorMargem = 1 + margemSeguranca / 100;
 
   for (const codigo of todosCodigos) {
     const venda = vendasPorCodigo.get(codigo);
@@ -109,7 +116,8 @@ export function gerarPrevisao(
     const estoqueMinimo = itemEstoque?.estoque_minimo ?? 0;
 
     const producaoSugeridaBruta = mediaSemanal - quantidadeAtual;
-    const producaoSugerida = Math.max(producaoSugeridaBruta, 0);
+    const producaoSugeridaBase = Math.max(producaoSugeridaBruta, 0);
+    const producaoSugerida = producaoSugeridaBase * fatorMargem;
 
     const coberturaDias = mediaSemanal > 0 ? (quantidadeAtual / mediaSemanal) * 7 : null;
 
