@@ -5,6 +5,7 @@ interface VendaInput {
   produto: string;
   quantidade_vendida: number;
   data_venda: string;
+  empresa?: string;
 }
 
 interface EstoqueInput {
@@ -61,11 +62,6 @@ export function filtrarVendasPorPeriodo(
   return { vendasFiltradas, dataInicio, dataFim };
 }
 
-/**
- * Regra de negócio principal:
- * Média Semanal = (soma das vendas no período) / (dias do período) * 7
- * Produção Sugerida = max(Média Semanal - Estoque Atual, 0) * (1 + margemSeguranca/100)
- */
 export function gerarPrevisao(
   vendas: VendaInput[],
   estoque: EstoqueInput[],
@@ -86,13 +82,17 @@ export function gerarPrevisao(
     1
   );
 
-  const vendasPorCodigo = new Map<string, { produto: string; total: number }>();
+  const vendasPorCodigo = new Map<string, { produto: string; total: number; empresa: string | null }>();
   for (const venda of vendasFiltradas) {
     const atual = vendasPorCodigo.get(venda.codigo);
     if (atual) {
       atual.total += venda.quantidade_vendida;
     } else {
-      vendasPorCodigo.set(venda.codigo, { produto: venda.produto, total: venda.quantidade_vendida });
+      vendasPorCodigo.set(venda.codigo, {
+        produto: venda.produto,
+        total: venda.quantidade_vendida,
+        empresa: venda.empresa ?? null,
+      });
     }
   }
 
@@ -130,6 +130,7 @@ export function gerarPrevisao(
       producao_sugerida: Number(producaoSugerida.toFixed(2)),
       status: producaoSugerida > 0 ? "produzir" : "estoque_ok",
       cobertura_dias: coberturaDias !== null ? Number(coberturaDias.toFixed(1)) : null,
+      empresa: venda?.empresa ?? null,
     });
   }
 
