@@ -8,7 +8,7 @@ import { parseVendasHistorico } from "@/lib/parser";
 import { ImportacaoStatus } from "@/types/pcp";
 
 interface Props {
-  onImportar: (dados: { codigo: string; produto: string; quantidade_vendida: number; data_venda: string }[], status: ImportacaoStatus) => void;
+  onImportar: (dados: { codigo: string; produto: string; quantidade_vendida: number; data_venda: string; empresa?: string }[], status: ImportacaoStatus) => void;
 }
 
 export function ImportacaoVendas({ onImportar }: Props) {
@@ -47,7 +47,7 @@ export function ImportacaoVendas({ onImportar }: Props) {
           <FileSpreadsheet size={18} className="text-dourado" />
           Histórico de Vendas
         </CardTitle>
-        <CardDescription>Colunas esperadas: Código, Produto, Quantidade Vendida, Data da Venda</CardDescription>
+        <CardDescription>Colunas esperadas: Código, Produto, Quantidade Vendida, Data da Venda, Empresa (opcional)</CardDescription>
       </CardHeader>
 
       <input
