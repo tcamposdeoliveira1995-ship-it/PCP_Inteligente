@@ -113,13 +113,23 @@ export async function parseVendasHistorico(
   const linhas = mapearLinhas(rows, headerRow);
 
   if (ehFormatoCurvaABC) {
-    const dados = linhas
-      .map((linha) => ({
-        codigo: String(linha["cod_produto"] ?? "").trim(),
-        produto: String(linha["desc_produto"] ?? "").trim(),
-        quantidade_vendida: parseFloat(String(linha["tot_qtde"] ?? "0").replace(",", ".")) || 0,
-        data_venda: periodoParaData(linha["periodo"]),
-        empresa: String(linha["empresa"] ?? "").trim() || undefined,
+    // Busca o índice de cada coluna pelo header normalizado para evitar
+    // problemas com espaços invisíveis ou capitalização inconsistente no Excel.
+    const headerNorm = headerRow.map(normalizarChave);
+    const idxCod = headerNorm.findIndex((h) => h === "cod_produto");
+    const idxDesc = headerNorm.findIndex((h) => h === "desc_produto");
+    const idxQtd = headerNorm.findIndex((h) => h === "tot_qtde");
+    const idxPeriodo = headerNorm.findIndex((h) => h === "periodo");
+    const idxEmpresa = headerNorm.findIndex((h) => h === "empresa");
+
+    const dados = (rows.slice(1) as unknown[][])
+      .filter((row) => row.some((cell) => cell !== undefined && cell !== ""))
+      .map((row) => ({
+        codigo: String(row[idxCod] ?? "").trim(),
+        produto: String(row[idxDesc] ?? "").trim(),
+        quantidade_vendida: parseFloat(String(row[idxQtd] ?? "0").replace(",", ".")) || 0,
+        data_venda: periodoParaData(row[idxPeriodo]),
+        empresa: idxEmpresa >= 0 ? String(row[idxEmpresa] ?? "").trim() || undefined : undefined,
       }))
       .filter((item) => item.codigo && item.data_venda);
 
