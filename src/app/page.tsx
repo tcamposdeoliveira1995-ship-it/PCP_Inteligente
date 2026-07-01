@@ -63,9 +63,16 @@ export default function DashboardPage() {
     carregar();
   }, []);
 
+  // Previsões antigas (sem coluna EMPRESA na planilha importada) ficam com
+  // empresa = null. Detectamos isso para exibir aviso no dashboard.
+  const dadosSemEmpresa = itens.length > 0 && itens.every((i) => !i.empresa);
+
   const itensFiltrados = filtroEmpresa === "todos"
     ? itens
-    : itens.filter((i) => i.empresa === filtroEmpresa);
+    : itens.filter((i) => {
+        if (!i.empresa) return false;
+        return i.empresa.toUpperCase().trim() === filtroEmpresa;
+      });
 
   const top5 = itensFiltrados.slice(0, 5);
   const produtosParaProduzir = itensFiltrados.filter((i) => i.status === "produzir").length;
@@ -156,6 +163,14 @@ export default function DashboardPage() {
           </button>
         ))}
       </div>
+
+      {dadosSemEmpresa && filtroEmpresa !== "todos" && (
+        <div className="rounded-md border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-700 dark:text-yellow-400">
+          <strong>Filtro por empresa indisponível:</strong> a previsão salva foi gerada com uma planilha
+          que não possui coluna <code className="font-mono">Empresa</code>. Gere uma nova previsão
+          incluindo essa coluna para ativar o filtro.
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="flex items-center gap-4">
