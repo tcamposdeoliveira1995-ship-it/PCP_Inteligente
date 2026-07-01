@@ -82,6 +82,7 @@ export function gerarPrevisao(
     1
   );
 
+  // Agrega vendas do período filtrado para cálculo de média semanal
   const vendasPorCodigo = new Map<string, { produto: string; total: number; empresa: string | null }>();
   for (const venda of vendasFiltradas) {
     const atual = vendasPorCodigo.get(venda.codigo);
@@ -93,6 +94,15 @@ export function gerarPrevisao(
         total: venda.quantidade_vendida,
         empresa: venda.empresa ?? null,
       });
+    }
+  }
+
+  // Empresa vem de TODAS as vendas (sem filtro de período) para que o campo
+  // nunca fique null por causa de um período que não cobre os dados importados.
+  const empresaPorCodigo = new Map<string, string>();
+  for (const venda of vendas) {
+    if (venda.empresa && !empresaPorCodigo.has(venda.codigo)) {
+      empresaPorCodigo.set(venda.codigo, venda.empresa);
     }
   }
 
@@ -130,7 +140,7 @@ export function gerarPrevisao(
       producao_sugerida: Number(producaoSugerida.toFixed(2)),
       status: producaoSugerida > 0 ? "produzir" : "estoque_ok",
       cobertura_dias: coberturaDias !== null ? Number(coberturaDias.toFixed(1)) : null,
-      empresa: venda?.empresa ?? null,
+      empresa: empresaPorCodigo.get(codigo) ?? venda?.empresa ?? null,
     });
   }
 
